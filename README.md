@@ -17,3 +17,5 @@ Módulo Boxbilling para pagamento via PagSeguro
     border: 0;
     margin: 10px;
 }
+
+5. Faça o upload da imagem "pagseguro.gif (Ex: "bb-themes/huraga/assets/img/gateway_logos/")
