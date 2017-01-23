@@ -39,7 +39,7 @@ class Payment_Adapter_Pagseguro extends Payment_AdapterAbstract
     public function init()
     {
         if(!$this->getParam('email')) {
-            throw new Payment_Exception('Para que este modulo funciona corretamente o e-mail deve ser informado em "Configuration -> Payments".');
+        	throw new Payment_Exception('Para que este modulo funciona corretamente o e-mail deve ser informado em "Configuration -> Payments".');
         }
         
         if (!$this->getParam('token')) {
@@ -52,32 +52,32 @@ class Payment_Adapter_Pagseguro extends Payment_AdapterAbstract
         return array(
             'supports_one_time_payments'   	=>  true,
             'supports_subscriptions'     	=>  false,
-            'description'    				=>  'Os clientes serao redirecionados para o Pagseguro para fazer o pagamento.',
+            'description'    			=>  'Os clientes serao redirecionados para o Pagseguro para fazer o pagamento.',
             'form'  => array(
                 'email' => array('text', array(
-                            'label' => 'Pagseguro E-mail', 
-                            'description' => 'Seu e-mail Pagseguro',
-                            'validators'=>array('EmailAddress'),
+                            	'label' => 'Pagseguro E-mail', 
+                            	'description' => 'Seu e-mail Pagseguro',
+                            	'validators'=>array('EmailAddress'),
                     ),
                  ),
                  'token' => array('password', array(
-                 			'label' => 'Token',
-                 			'description' => 'Seu Token de seguranca gerado via pagseguro',
-                 			'validators' => array('notempty'),
+                 		'label' => 'Token',
+                 		'description' => 'Seu Token de seguranca gerado via pagseguro',
+                 		'validators' => array('notempty'),
                  	),
                  ),
                  'campodocumento' => array('text', array(
-                 			'label' => 'Token',
-                 			'description' => 'Campo personalizado em que consta o CPF/CNPJ',
-                 			'validators' => array('notempty'),
+                 		'label' => 'Token',
+                 		'description' => 'Campo personalizado em que consta o CPF/CNPJ',
+                 		'validators' => array('notempty'),
                  	),
                  ),
                  'sandbox' => array('select', array(
-                             'multiOptions' => array(
-                                 '1' => 'Sim',
-                                 '0' => 'Nao'
-                             ),
-                             'label' => 'Sandbox - Ambiente de Testes',
+                             	'multiOptions' => array(
+                                 	'1' => 'Sim',
+                                 	'0' => 'Nao'
+                             	),
+                             	'label' => 'Sandbox - Ambiente de Testes',
                      ),
                   ),
             ),
@@ -100,62 +100,62 @@ class Payment_Adapter_Pagseguro extends Payment_AdapterAbstract
     public function getServiceUrl()
     {
         if($this->getParam('sandbox')) {
-			return 'https://sandbox.pagseguro.uol.com.br/v2/checkout/payment.html?code='.$this->transacao;
+		return 'https://sandbox.pagseguro.uol.com.br/v2/checkout/payment.html?code='.$this->transacao;
         }
 		return 'https://pagseguro.uol.com.br/v2/checkout/payment.html?code=' . $this->transacao;
     }
 
-	public function singlePayment(Payment_Invoice $invoice) 
-	{
-		$c 			= $invoice->getBuyer();
-        $rows	 	= $this->di['db']->getAll('SELECT * FROM client WHERE email = :email AND role = :role', array(':email' => $c->getEmail(),':role' => 'client'));
-        $cliente 	= $rows[0];
+    public function singlePayment(Payment_Invoice $invoice) 
+    {
+		$c 		= $invoice->getBuyer();
+        	$rows	 	= $this->di['db']->getAll('SELECT * FROM client WHERE email = :email AND role = :role', array(':email' => $c->getEmail(),':role' => 'client'));
+        	$cliente 	= $rows[0];
 		$endereco	= explode(",",$cliente["address_1"]);
 		$telefone	= explode(" ",$c->getPhone());
 		
 		$xml 		= new ExSimpleXMLElement('<checkout></checkout>');
 		$sender		= $xml->addChild('sender');
-					  $sender->addChild('name',$c->getFirstName() . ' ' . $c->getLastName());
-					  $sender->addChild('email',$c->getEmail());
+				  $sender->addChild('name',$c->getFirstName() . ' ' . $c->getLastName());
+				  $sender->addChild('email',$c->getEmail());
 		$phone 		= $sender->addChild('phone');
-					  $phone->addChild('areaCode',$telefone[0]);
-					  $phone->addChild('number',$telefone[1]);
-					  $sender->addChild('ip',$_SERVER["REMOTE_ADDR"]);
+				  $phone->addChild('areaCode',$telefone[0]);
+				  $phone->addChild('number',$telefone[1]);
+				  $sender->addChild('ip',$_SERVER["REMOTE_ADDR"]);
 		$documents	= $sender->addChild('documents');
 		$document	= $documents->addChild('document');
 		
 		if ($cliente["type"] == "individual") {
-		  			  $document->addChild('type','CPF');
+		  		  $document->addChild('type','CPF');
 		} else {
-		  			  $document->addChild('type','CNPJ');
+		  		  $document->addChild('type','CNPJ');
 		}
-		  			  $document->addChild('value',$cliente[$this->getParam('campodocumento')]);
-					  $xml->addChild('currency',$invoice->getCurrency());
+		  		  $document->addChild('value',$cliente[$this->getParam('campodocumento')]);
+				  $xml->addChild('currency',$invoice->getCurrency());
 		$items		= $xml->addChild('items');
 		
 		$i = 1;
 		foreach ($invoice->getItems() as $item) {
 			$variavel   = "item".$i;
 			$$variavel	= $items->addChild('item');
-						  $$variavel->addChild('id',$item->getId());
-						  $$variavel->addChild('description',$item->getTitle());
-						  $$variavel->addChild('quantity',$item->getQuantity());
-						  $$variavel->addChild('amount',number_format($item->getPrice() + $item->getTax(), 2, '.', ''));
+					  $$variavel->addChild('id',$item->getId());
+					  $$variavel->addChild('description',$item->getTitle());
+					  $$variavel->addChild('quantity',$item->getQuantity());
+					  $$variavel->addChild('amount',number_format($item->getPrice() + $item->getTax(), 2, '.', ''));
 		}
-					  $xml->addChildCData('redirectURL',$this->getParam('return_url'));
-					  $xml->addChild('reference',$invoice->getId());
+				  $xml->addChildCData('redirectURL',$this->getParam('return_url'));
+				  $xml->addChild('reference',$invoice->getId());
 		$shipping	= $xml->addChild('shipping');
 		$address	= $shipping->addChild('address');
-					  $address->addChildCData('street',$endereco[0]);
-					  $address->addChild('number',trim($endereco[1]));
-					  $address->addChild('district',$cliente["address_2"]);
-					  $address->addChild('city',$c->getCity());
-					  $address->addChild('state',$c->getState());
-					  $address->addChild('country','BRA');
-					  $address->addChild('postalCode',$c->getZip());
-					  $shipping->addChild('type','3');
+				  $address->addChildCData('street',$endereco[0]);
+				  $address->addChild('number',trim($endereco[1]));
+				  $address->addChild('district',$cliente["address_2"]);
+				  $address->addChild('city',$c->getCity());
+				  $address->addChild('state',$c->getState());
+				  $address->addChild('country','BRA');
+				  $address->addChild('postalCode',$c->getZip());
+				  $shipping->addChild('type','3');
 		$receiver	= $xml->addChild('receiver');
-					  $receiver->AddChild('email',$this->getParam('email'));
+				  $receiver->AddChild('email',$this->getParam('email'));
 			  
 		$dados = $xml->asXML();
 
@@ -185,7 +185,6 @@ class Payment_Adapter_Pagseguro extends Payment_AdapterAbstract
 		}
 	}
 
-
 	public function recurrentPayment(Payment_Invoice $invoice) 
 	{
 		throw new Payment_Exception('Not implemented yet');	
@@ -205,8 +204,8 @@ class Payment_Adapter_Pagseguro extends Payment_AdapterAbstract
 		}
 	}
 
-    public function processTransaction($api_admin, $id, $data, $gateway_id)
-    {
+    	public function processTransaction($api_admin, $id, $data, $gateway_id)
+        {
 
 		$tipo 		= $data['post']['notificationType'];
 		$transacao 	= $data['post']['notificationCode'];
@@ -238,43 +237,36 @@ class Payment_Adapter_Pagseguro extends Payment_AdapterAbstract
 			$linkpagamento	= $xml->paymentLink;
 			$valor			= $xml->grossAmount;
 			
-            if($status == "3" || $status == "4") {
+            		if($status == "3" || $status == "4") {
 				
 				$tx = $api_admin->invoice_transaction_get(array('id'=>$id));
 		
-		        if(!$tx['invoice_id']) {
-		            $api_admin->invoice_transaction_update(array('id'=>$id,'invoice_id'=>(int)$invoice,'txn_id'=>(string)$transacao,'txn_status'=>(string)$this->pagseguroStatus($status),'amount'=>(float)$valor,'currency'=>'BRL',));
-			        
+		       		if(!$tx['invoice_id']) {
+		            		$api_admin->invoice_transaction_update(array('id'=>$id,'invoice_id'=>(int)$invoice,'txn_id'=>(string)$transacao,'txn_status'=>(string)$this->pagseguroStatus($status),'amount'=>(float)$valor,'currency'=>'BRL',));
 					$invoice = $api_admin->invoice_get(array('id'=>(int)$invoice));
-			        $client_id = $invoice['client']['id'];
+			        	$client_id = $invoice['client']['id'];
 			
-	                $bd = array(
-	                    'id'            =>  $client_id,
-	                    'amount'        =>  (float) $valor,
-	                    'description'   =>  'Pagseguro transaction '.(string)$transacao,
-	                    'type'          =>  'Pagseguro',
-	                    'rel_id'        =>  (int)$invoice,
-	                );
-	                $api_admin->client_balance_add_funds($bd);
-              		$api_admin->invoice_batch_pay_with_credits(array('client_id'=>$client_id));
+	                		$bd = array(
+	                    			'id'            =>  $client_id,
+	                    			'amount'        =>  (float) $valor,
+	                    			'description'   =>  'Pagseguro transaction '.(string)$transacao,
+	                    			'type'          =>  'Pagseguro',
+	                    			'rel_id'        =>  (int)$invoice,
+	                		);
+	                		$api_admin->client_balance_add_funds($bd);
+              				$api_admin->invoice_batch_pay_with_credits(array('client_id'=>$client_id));
 				}
-            }
+            		}
 		} else {
 			throw new Payment_Exception('Nao Permitido');	
 		}
 		
-    }
+        }
 
 	public function getTransaction($data, Payment_Invoice $invoice) 
 	{
 		throw new Payment_Exception('Not implemented yet');	
 	}
-
-    public function isIpnValid($data, Payment_Invoice $invoice)
-    {
-        $ipn = $data['post'];
-		return ($ipn['ap_securitycode'] == $this->getParam('securityCode'));
-    }
 }
 
 /**
